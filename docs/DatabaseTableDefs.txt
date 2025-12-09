@@ -1,0 +1,11 @@
+ indexed_files (
+            document_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT UNIQUE NOT NULL
+	)
+
+inverted_index (
+            term TEXT NOT NULL,
+            document_id INTEGER NOT NULL,
+            term_freq INTEGER NOT NULL,
+            PRIMARY KEY (term, document_id)
+        )
