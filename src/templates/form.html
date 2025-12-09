@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Search Engine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+       .snippet {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .title {
+            color: #1a0dab;
+            font-size: 18px;
+            margin-bottom: 5px;
+            text-decoration: underline;
+        }
+        .url {
+            color: #006621;
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-decoration: none;
+        }
+        .description {
+            color: #545454;
+            line-height: 1.4;
+        }
+        b {
+            font-weight: bold;
+            color: #222;
+        }
+        h1 {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1 onclick="window.location.href='/'">My Search Engine</h1>
+    <form action="/submit" method="POST">
+        <p>
+            <input type="text" id="query" name="query" size="80" required>
+        </p>
+        <p>
+            <input type="submit" value="Submit">
+        </p>
+    </form>
+    {{ results|safe }}
+</body>
+</html>
