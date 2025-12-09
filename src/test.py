@@ -13,4 +13,7 @@ hw3.index_dir('movie_reviews')
 results = hw3.find(["cat","dog", "fish", "badger"])
 
 results_1 = hw3.search("genius comedy")
-print(results_1)
+
+processQuery = hw3.process_query("The rain in Spain falls mainly on the plain.")
+
+print(processQuery)
