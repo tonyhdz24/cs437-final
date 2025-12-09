@@ -252,11 +252,3 @@ def search(query):
 
     # Return only filenames (sorted)
     return [filename for filename, score in sorted_docs]
-
-
-# HW4 Code
-def index_context_vectors(max_context_vector_len):
-
-
-
-
