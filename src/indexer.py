@@ -6,6 +6,7 @@ import os
 from collections import defaultdict
 import math
 import nltk
+import re
 
 # init stemmer and set stemmer language
 snowBallStemmer = nltk.stem.SnowballStemmer("english",ignore_stopwords=True)
@@ -259,7 +260,7 @@ def search(query):
 # RENDERING RESULTS
 # -----
 
-def make_snippers(query,ranks):
+def make_snippets(query,ranks):
     keypairs = process_query(query)
     html =""
 
@@ -267,8 +268,11 @@ def make_snippers(query,ranks):
     for doc in ranks:
         title = get_document_title(doc)
         desc = snippet(keypairs,doc)
-        highlighted_title = highlighted_title(title,keypairs)
-        html += f'<div class="snippet"> <div class="title">{highlighted_title}</div><div class="{doc}">{doc}</div><div class="description">{description}</div></div>'
+
+        highlighted_title = highlight_keywords(title,keypairs)
+        highlighted_desc = highlight_keywords(desc, keypairs)
+
+        html += f'<div class="snippet"> <div class="title">{highlighted_title}</div><div class="{doc}">{doc}</div><div class="description">{highlighted_desc}</div></div>'
     return html
 
 def process_query(query):
@@ -348,7 +352,7 @@ def score_sentence(keywords, sentence):
     # print("=============================")
     sentence_l = sentence.lower()
     sentence_words = nltk.word_tokenize(sentence_l)
-    sentence_stems = [stemmer.stem(word) for word in sentence_words]
+    sentence_stems = [snowBallStemmer.stem(word) for word in sentence_words]
 
     # print(f"{sentence_l}")
     score = 0
@@ -392,3 +396,21 @@ def score_sentence(keywords, sentence):
                     score +=3
 
     return score, keyword_positions
+
+def get_document_title(docname):
+    """Generate a nice title from the filename"""
+    # Remove extension and replace hyphens with spaces
+    title = docname.replace('.doc', '').replace('-', ' ')
+    # Capitalize each word
+    return title.title()
+
+def highlight_keywords(text, keypairs):
+    """Bold keywords that appear in the text"""
+    highlighted = text
+    
+    for word, stem in keypairs:
+        # Match whole words only
+        pattern = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
+        highlighted = pattern.sub(f'<b>{word.title()}</b>', highlighted)
+    
+    return highlighted
