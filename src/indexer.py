@@ -7,12 +7,14 @@ from collections import defaultdict
 import math
 import nltk
 
-
 # init stemmer and set stemmer language
 snowBallStemmer = nltk.stem.SnowballStemmer("english",ignore_stopwords=True)
 
 # Init tokenizer
 tokenizer  = nltk.tokenize.word_tokenize
+
+# list of stop words
+stopwords = set(nltk.corpus.stopwords.words('english'))
 
 
 def normalize_path(path):
@@ -252,3 +254,141 @@ def search(query):
 
     # Return only filenames (sorted)
     return [filename for filename, score in sorted_docs]
+
+# -----
+# RENDERING RESULTS
+# -----
+
+def make_snippers(query,ranks):
+    keypairs = process_query(query)
+    html =""
+
+    # Loop through and build snippets for each document
+    for doc in ranks:
+        title = get_document_title(doc)
+        desc = snippet(keypairs,doc)
+        highlighted_title = highlighted_title(title,keypairs)
+        html += f'<div class="snippet"> <div class="title">{highlighted_title}</div><div class="{doc}">{doc}</div><div class="description">{description}</div></div>'
+    return html
+
+def process_query(query):
+    text = query.lower()
+    tokens = tokenizer(text)
+    filtered_tokens = [token for token in tokens if token.isalpha() and token not in stopwords]
+    keypairs = []
+
+    for keyword in filtered_tokens:
+        keypairs.append( (keyword,snowBallStemmer.stem(keyword,) ) )
+
+    return keypairs
+
+def snippet(keypairs, docname, max_length=250):
+    scores = []
+    tokenized_sentences = ""
+
+    with open(docname) as f:
+        doc_text = f.read()
+        tokenized_sentences = nltk.tokenize.sent_tokenize(doc_text,language='english')
+        f.close()
+    # print(tokenized_sentences)
+    for i, sentence in enumerate(tokenized_sentences):
+        sentence_score, positions = score_sentence(keypairs, sentence)
+        if sentence_score > 0:  # Only keep sentences with matches
+            scores.append((sentence_score, i, sentence, positions))
+   
+    if not scores:
+        print("NO matching sentences found")
+        if tokenized_sentences:
+            first_sentence = tokenized_sentences[0]
+            if len(first_sentence) <= max_length:
+                return first_sentence
+            else:
+                return first_sentence[:max_length] + ".."
+        return "No prevews available"
+    scores.sort(reverse=True, key=lambda x : x[0])
+    # Select sentences that fit within max_length
+    resulting_sentences = []
+    total_length = 0
+    
+    for score, original_index, sentence, positions in scores:
+        sentence_len = len(sentence)
+        
+        # Can we fit this sentence?
+        if total_length + sentence_len <= max_length:
+            resulting_sentences.append((original_index, sentence))
+            total_length += sentence_len
+        else:
+            # If we haven't added any sentences yet, truncate this one
+            if not resulting_sentences:
+                truncated = sentence[:max_length] + "..."
+                resulting_sentences.append((original_index, truncated))
+
+            # Stop looking for more sentences
+            break
+        # Sort sentences back to their original order in the document
+    resulting_sentences.sort(key=lambda x: x[0])
+    snippet_parts = []
+    
+    for i, (index, sentence) in enumerate(resulting_sentences):
+        snippet_parts.append(sentence)
+        
+        # Check if next sentence is consecutive
+        if i < len(resulting_sentences) - 1:
+            next_index = resulting_sentences[i + 1][0]
+            if next_index != index + 1:  # Not consecutive
+                snippet_parts.append("...")
+    
+    final_snippet = " ".join(snippet_parts)
+
+    return final_snippet
+    
+def score_sentence(keywords, sentence):
+    # print("=============================")
+    # print("=======SCORING SENTENCE======")
+    # print("=============================")
+    sentence_l = sentence.lower()
+    sentence_words = nltk.word_tokenize(sentence_l)
+    sentence_stems = [stemmer.stem(word) for word in sentence_words]
+
+    # print(f"{sentence_l}")
+    score = 0
+    keyword_positions = []
+    for word,stem in keywords:
+        # print(f"Looking for: {word} OR stem: {stem}")
+        match = None
+        try:
+            pos = sentence_words.index(word)
+            score += 10
+            match = word
+            # print(f"FOUND exact match at position {pos}")
+        except ValueError:
+            # exact word was not found try stemmed version
+            try:
+                pos = sentence_words.index(stem)
+                score += 5
+                match = stem
+                # print(f"FOUND stem match at position {pos}")
+            except ValueError:
+                # print(f"NO match found")
+                pass
+        if match:
+            search_list = sentence_words if match == word else sentence_stems
+            start = 0
+            while True:
+                try:
+                    pos = search_list.index(match, start)
+                    keyword_positions.append(pos)
+                    start = pos +1
+                except ValueError:
+                    break
+        if len(keyword_positions) >1:
+            keyword_positions.sort()
+
+
+            for i in range(len(keyword_positions) -1):
+                distance = keyword_positions[i+1] - keyword_positions[i]
+    
+                if distance < 50:
+                    score +=3
+
+    return score, keyword_positions
