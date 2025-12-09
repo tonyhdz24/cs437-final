@@ -1,11 +1,22 @@
 from flask import Flask, render_template, request, redirect, url_for
-import main as lib5
+# TODO update to use main
+# import main as lib5
+import indexer as indexer
 
 app = Flask(__name__, static_folder='docs', static_url_path='/docs')
 
+cacm_dataset = "../data/cacm/docs"
 # Route to display the form
 @app.route('/')
 def index():
+    # Set up database
+    indexer.create_db()
+    print("DATABASE CREATED")
+    # Index dataset
+    indexer.index_dir(cacm_dataset)
+    print("DATASET INDEXED")
+
+
     return render_template('form.html')
 
 # Route to process the form submission
@@ -16,12 +27,12 @@ def submit():
 
     # Calling search on our database
     print("running search")
-    ranks = lab5.search(query)
+    ranks = indexer.search(query)
 
     # Ranking search results
-    print(f"     ranks: {ranks}")
-    results = lab5.make_snippets(query,ranks)
-    print(f"     results: {results}")
+    # print(f"     ranks: {ranks}")
+    results = indexer.make_snippets(query,ranks)
+    # print(f"     results: {results}")
     print("DONE search")
 
     print("rendering")
@@ -29,3 +40,6 @@ def submit():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+# TODO Fix Title, current title is file name and not document name
+# TODO Fix title highlight, Currently not highlighting keywords
